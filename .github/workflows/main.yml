@@ -1,0 +1,57 @@
+name: Build Gerald CIA
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install helper packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3 python3-pil unzip wget ca-certificates
+
+      - name: Install makerom and bannertool
+        run: |
+          mkdir -p /tmp/tools && cd /tmp/tools
+          wget -q https://github.com/diasurgical/bannertool/releases/download/1.2.0/bannertool.zip
+          unzip -j bannertool.zip "linux-x86_64/bannertool" -d /usr/local/bin
+          wget -q https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.18.3/makerom-v0.18.3-ubuntu_x86_64.zip
+          unzip -o makerom-v0.18.3-ubuntu_x86_64.zip makerom -d /usr/local/bin
+          chmod +x /usr/local/bin/bannertool /usr/local/bin/makerom
+
+      - name: Generate pixel art + sounds
+        run: python3 tools/gen_assets.py
+
+      - name: Build .3dsx / .elf / .smdh
+        run: make
+
+      - name: Make banner
+        run: bannertool makebanner -i meta/banner.png -a meta/banner.wav -o banner.bin
+
+      - name: Build CIA
+        run: |
+          makerom -f cia -o gerald.cia -target t -exefslogo \
+            -elf gerald.elf -rsf meta/app.rsf \
+            -icon gerald.smdh -banner banner.bin \
+            -major 1 -minor 0 -micro 0 \
+            -DAPP_TITLE="Gerald" \
+            -DAPP_PRODUCT_CODE="CTR-P-GRLD" \
+            -DAPP_UNIQUE_ID=0xF8A21 \
+            -DAPP_ROMFS=romfs
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gerald
+          path: |
+            gerald.cia
+            gerald.3dsx
