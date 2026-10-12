@@ -43,6 +43,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 export _3DSXDEPS	:=	$(OUTPUT).smdh
+export _3DSXFLAGS	+=	--smdh=$(OUTPUT).smdh
 export APP_ICON		:=	$(TOPDIR)/$(ICON)
 export _3DSXFLAGS	+=	--romfs=$(CURDIR)/$(ROMFS)
 
